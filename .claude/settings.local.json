@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:8000/api/v1/sessions)",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(where python *)",
+      "Bash(d:/22019/1b/agent/Scripts/python.exe main.py)",
+      "Bash(netstat -ano)",
+      "Bash(d:/22019/1b/agent/Scripts/python.exe -c \"print\\('venv ok'\\)\")",
+      "Bash(d:/22019/1b/agent/Scripts/python.exe -c \"import main; print\\('import ok'\\)\")",
+      "Bash(d:/22019/1b/agent/Scripts/python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(curl -s http://localhost:3000/api/v1/sessions)",
+      "Bash(npx tsc *)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/sessions -H \"Content-Type: application/json\" -d \"{}\")",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/sessions/1b8e161a0b77/messages -H \"Content-Type: application/json\" -d \"{\\\\\"content\\\\\":\\\\\"你好，请用一句话介绍你自己\\\\\",\\\\\"files\\\\\":[],\\\\\"enable_search\\\\\":false,\\\\\"use_memory\\\\\":true}\")",
+      "Bash(curl -s -X POST \"http://localhost:8000/api/v1/sessions/1b8e161a0b77/messages\" -H \"Content-Type: application/json\" -d \"{\\\\\"content\\\\\":\\\\\"hello\\\\\",\\\\\"files\\\\\":[],\\\\\"enable_search\\\\\":false,\\\\\"use_memory\\\\\":true}\")",
+      "Bash(curl -s \"http://localhost:8000/api/v1/sessions/1b8e161a0b77\")"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+openai>=2.0.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+sqlalchemy[asyncio]>=2.0.25
+aiosqlite>=0.20.0
+chromadb>=0.4.22
+pydantic-settings>=2.1.0
+httpx>=0.26.0
+python-multipart>=0.0.6
+PyPDF2>=3.0.0
+python-docx>=1.0.0
+openpyxl>=3.1.0
+beautifulsoup4>=4.12.0
+markdown>=3.5.0
+tiktoken>=0.5.0
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

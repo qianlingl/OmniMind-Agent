@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(taskkill //F //FI \"WINDOWTITLE eq *vite*\")",
+      "Bash(taskkill //F //PID 18228)",
+      "Bash(npx vite *)",
+      "Bash(curl -s --max-time 3 http://localhost:3000)",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/sessions -H \"Content-Type: application/json\" -d \"{}\")",
+      "Bash(curl -s --max-time 3 http://localhost:8000/health)",
+      "Bash(taskkill //F //PID 12660)",
+      "Bash(taskkill //F //PID 7164)",
+      "Bash(taskkill //F //IM \"python.exe\")",
+      "Bash(d:/22019/1b/agent/Scripts/python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000)"
+    ]
+  }
+}
