@@ -77,6 +77,8 @@ class Flashcard(Base):
 
     __table_args__ = (
         Index("ix_flashcards_goal_review", "goal_id", "next_review_at"),
+        Index("ix_flashcards_concept", "concept"),
+        Index("ix_flashcards_goal_mastery", "goal_id", "mastery"),
     )
 
 

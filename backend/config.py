@@ -14,12 +14,15 @@ class Settings(BaseSettings):
     searchapi_key: str = ""
 
     api_key_hash: str = ""
+    require_api_key: bool = True
 
     workspace_dir: str = "data/workspace"
 
     host: str = "0.0.0.0"
     port: int = 8000
     log_level: str = "info"
+    llm_request_timeout: int = 120
+    llm_max_retries: int = 3
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

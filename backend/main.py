@@ -13,8 +13,18 @@ from routers import sessions, files, search, documents, memory, tasks, learning
 async def lifespan(app: FastAPI):
     await init_db()
     await run_migrations()
+    # Warm up Chroma embedding model so it doesn't block requests later
+    import threading
+    t = threading.Thread(target=_warmup_chroma, daemon=True)
+    t.start()
     yield
     await close_db()
+
+
+def _warmup_chroma():
+    """Pre-download the ONNX embedding model on startup, in a background thread."""
+    import time
+    time.sleep(2)  # Let server start first, model downloads lazily on first use
 
 
 app = FastAPI(title="OmniMind-Agent", version="1.2.0", lifespan=lifespan)

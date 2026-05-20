@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../api/client';
 
 interface AuthState {
@@ -16,16 +16,19 @@ const AuthContext = createContext<AuthState>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [apiKey, setKey] = useState(() => localStorage.getItem('om_api_key') || '');
 
+  useEffect(() => {
+    const saved = localStorage.getItem('om_api_key');
+    if (saved) {
+      api.setApiKey(saved);
+      setKey(saved);
+    }
+  }, []);
+
   const setApiKey = (key: string) => {
     localStorage.setItem('om_api_key', key);
     api.setApiKey(key);
     setKey(key);
   };
-
-  // Initialize
-  if (apiKey) {
-    api.setApiKey(apiKey);
-  }
 
   return (
     <AuthContext.Provider value={{ apiKey, setApiKey, isAuthenticated: !!apiKey }}>

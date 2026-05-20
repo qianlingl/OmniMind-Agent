@@ -13,20 +13,22 @@ export default function LearningPage() {
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
   const [tab, setTab] = useState('dashboard');
   const [showWizard, setShowWizard] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const loadGoals = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await listGoals();
       setGoals(data.goals);
-      if (!activeGoalId && data.goals.length > 0) {
-        setActiveGoalId(data.goals[0].goal_id);
-      }
-    } catch (e) {
-      console.error(e);
+      setActiveGoalId(prev => prev || (data.goals.length > 0 ? data.goals[0].goal_id : null));
+    } catch {
+      // handle silently
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadGoals(); }, []);
+  useEffect(() => { loadGoals(); }, [loadGoals]);
 
   const handleGoalCreated = () => {
     setShowWizard(false);
@@ -59,6 +61,8 @@ export default function LearningPage() {
       </div>
 
       {showWizard && <GoalWizard onCreated={handleGoalCreated} />}
+
+      {loading && goals.length === 0 && <div style={{textAlign:'center',padding:40,color:'var(--text-muted)'}}>加载中...</div>}
 
       {goals.length > 0 && (
         <div style={{ marginBottom: 16 }}>

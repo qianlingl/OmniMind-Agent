@@ -19,7 +19,7 @@ export default function ChatPage() {
   const [activeSession, setActiveSession] = useState<string | null>(sessionId || null);
   const pendingMessage = useRef<string | null>(null);
 
-  const { messages, streaming, streamContent, loadingHistory, send, clear } = useChat(activeSession);
+  const { messages, streaming, streamContent, loadingHistory, historyError, cancel, send, retry, clear } = useChat(activeSession);
 
   useEffect(() => {
     if (sessionId && sessionId !== activeSession) {
@@ -57,12 +57,13 @@ export default function ChatPage() {
         navigate('/search');
       }
       if (e.key === 'Escape' && activeSession) {
+        e.preventDefault();
         clear();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [activeSession]);
+  }, [activeSession, clear, navigate]);
 
   return (
     <div className="chat-page">
@@ -73,6 +74,8 @@ export default function ChatPage() {
           streamContent={streamContent}
           loadingHistory={loadingHistory}
           onSend={content => send(content)}
+          onCancel={streaming ? cancel : undefined}
+          onRetry={retry}
           sessionId={activeSession}
         />
       ) : (

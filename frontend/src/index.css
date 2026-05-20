@@ -459,6 +459,32 @@ body {
   color: var(--accent-red);
 }
 
+.sidebar-session-actions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sidebar-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
 .sidebar-sessions-empty {
   text-align: center;
   color: var(--text-muted);
@@ -1930,6 +1956,29 @@ input[type="range"].input {
 }
 .toast-info .toast-icon { background: rgba(255,255,255,0.2); }
 
+.toast-message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.toast-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.toast-dismiss:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* ============================
    STAT CARDS
    ============================ */
@@ -2106,3 +2155,5 @@ select:focus-visible {
 .type-practice { background: rgba(139, 92, 246, 0.1); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.2); }
 .type-review { background: rgba(245, 158, 11, 0.1); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.2); }
 .type-quiz { background: rgba(16, 185, 129, 0.1); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+@keyframes spin { to { transform: rotate(360deg); } }

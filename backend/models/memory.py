@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, Text, Float
+from sqlalchemy import String, Integer, DateTime, Text, Float, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from models import Base
 from models.session import gen_id, now
@@ -18,3 +18,9 @@ class Memory(Base):
     access_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
     last_accessed: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    __table_args__ = (
+        Index("ix_memories_user_type", "user_id", "type"),
+        Index("ix_memories_source_session", "source_session_id"),
+        Index("ix_memories_importance", "importance"),
+    )

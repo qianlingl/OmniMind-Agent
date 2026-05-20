@@ -5,7 +5,7 @@ export async function createSession(userId?: string) {
 }
 
 export async function listSessions(skip = 0, limit = 20) {
-  return api.get<{ sessions: Array<{ session_id: string; created_at: string; last_active: string; message_count: number }>; total: number; skip: number; limit: number }>(`/sessions?skip=${skip}&limit=${limit}`);
+  return api.get<{ sessions: Array<{ session_id: string; title?: string; created_at: string; last_active: string; message_count: number }>; total: number; skip: number; limit: number }>(`/sessions?skip=${skip}&limit=${limit}`);
 }
 
 export async function getSession(sessionId: string) {
@@ -21,6 +21,10 @@ export async function sendMessage(sessionId: string, content: string, enableSear
 
 export async function deleteSession(sessionId: string) {
   return api.delete(`/sessions/${sessionId}`);
+}
+
+export async function updateSession(sessionId: string, updates: { title?: string }) {
+  return api.patch(`/sessions/${sessionId}`, updates);
 }
 
 export function streamChat(sessionId: string, content: string, onToken: (t: string) => void, onDone: () => void) {

@@ -42,6 +42,7 @@ class SessionRepo:
         for s, msg_count in rows:
             out.append({
                 "session_id": s.id,
+                "title": s.title or f"对话 {s.id[:6]}",
                 "created_at": s.created_at.isoformat() if s.created_at else "",
                 "last_active": s.last_active.isoformat() if s.last_active else "",
                 "message_count": msg_count,
@@ -91,3 +92,15 @@ class SessionRepo:
             update(Message).where(Message.id == msg_id).values(content=content, is_compressed=True)
         )
         await self.db.commit()
+
+    async def update(self, session_id: str, title: str | None = None) -> bool:
+        session = await self.get(session_id)
+        if not session:
+            return False
+        vals = {}
+        if title is not None:
+            vals["title"] = title
+        if vals:
+            await self.db.execute(update(Session).where(Session.id == session_id).values(**vals))
+            await self.db.commit()
+        return True

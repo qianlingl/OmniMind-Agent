@@ -1,3 +1,4 @@
+import asyncio
 import os
 import chromadb
 from chromadb.config import Settings as ChromaSettings
@@ -29,12 +30,12 @@ def get_collection():
     return _collection
 
 
-async def add_memory(memory_id: str, content: str, metadata: dict | None = None):
+def _add_memory_sync(memory_id: str, content: str, metadata: dict | None = None):
     col = get_collection()
     col.add(documents=[content], ids=[memory_id], metadatas=[metadata or {}])
 
 
-async def search_memories(query: str, top_k: int = 5) -> list[dict]:
+def _search_memories_sync(query: str, top_k: int = 5) -> list[dict]:
     col = get_collection()
     results = col.query(query_texts=[query], n_results=top_k)
     out = []
@@ -50,9 +51,21 @@ async def search_memories(query: str, top_k: int = 5) -> list[dict]:
     return out
 
 
-async def delete_memory(memory_id: str):
+async def add_memory(memory_id: str, content: str, metadata: dict | None = None):
+    await asyncio.to_thread(_add_memory_sync, memory_id, content, metadata)
+
+
+async def search_memories(query: str, top_k: int = 5) -> list[dict]:
+    return await asyncio.to_thread(_search_memories_sync, query, top_k)
+
+
+def _delete_memory_sync(memory_id: str):
     col = get_collection()
     try:
         col.delete(ids=[memory_id])
     except Exception:
         pass
+
+
+async def delete_memory(memory_id: str):
+    await asyncio.to_thread(_delete_memory_sync, memory_id)

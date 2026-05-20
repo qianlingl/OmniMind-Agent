@@ -1,4 +1,5 @@
 import hashlib
+import os
 from fastapi import Header, HTTPException, Request
 from database import async_session
 from core.exceptions import Unauthorized, PermissionDenied, AppException
@@ -14,12 +15,14 @@ async def get_db():
 
 
 async def verify_api_key(x_api_key: str = Header(default="", alias="X-API-Key")):
-    if not settings.api_key_hash:
-        return True
     if not x_api_key:
+        require = os.environ.get("REQUIRE_API_KEY", "").lower()
+        if require in ("", "0", "false", "no"):
+            return True
         raise HTTPException(status_code=401, detail="API key required")
-    key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
-    expected = settings.api_key_hash.replace("sha256$", "")
-    if key_hash != expected:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+    if settings.api_key_hash:
+        key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
+        expected = settings.api_key_hash.replace("sha256$", "")
+        if key_hash != expected:
+            raise HTTPException(status_code=401, detail="Invalid API key")
     return True

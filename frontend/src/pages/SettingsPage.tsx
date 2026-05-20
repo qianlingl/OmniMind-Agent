@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Check, Moon, Sun, Save } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
+import { api } from '../api/client';
+import { Eye, EyeOff, Check, X, Moon, Sun, Save, Loader } from 'lucide-react';
 
 export default function SettingsPage() {
   const { apiKey, setApiKey } = useAuth();
+  const { toast } = useToast();
   const [key, setKey] = useState(apiKey);
   const [saved, setSaved] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<'valid' | 'invalid' | null>(null);
   const [llmBaseUrl, setLlmBaseUrl] = useState(localStorage.getItem('om_llm_base_url') || 'https://api.deepseek.com');
   const [llmModel, setLlmModel] = useState(localStorage.getItem('om_llm_model') || 'deepseek-chat');
   const [bingKey, setBingKey] = useState(localStorage.getItem('om_bing_key') || '');
@@ -19,6 +24,41 @@ export default function SettingsPage() {
     localStorage.setItem('om_theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (key && key !== apiKey) {
+      setValidationResult(null);
+    }
+  }, [key, apiKey]);
+
+  const validateApiKey = async (apiKeyToTest: string) => {
+    setValidating(true);
+    setValidationResult(null);
+    try {
+      const testApi = new (await import('../api/client')).ApiClient();
+      testApi.setApiKey(apiKeyToTest);
+      await testApi.post<{ task_id: string }>('/tasks', {
+        type: 'test',
+        description: 'validate',
+        requirements: [],
+      });
+      setValidationResult('valid');
+      toast('API 密钥验证通过', 'success');
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (String(err).includes('401') || String(err).includes('403')) {
+        setValidationResult('invalid');
+        toast('API 密钥无效', 'error');
+      } else if (String(err).includes('timeout') || String(err).includes('Timeout')) {
+        toast('验证超时，请检查网络', 'error');
+      } else {
+        setValidationResult('valid');
+        toast('密钥设置成功（服务器无需认证）', 'success');
+      }
+    } finally {
+      setValidating(false);
+    }
+  };
+
   const handleSave = () => {
     setApiKey(key);
     localStorage.setItem('om_llm_base_url', llmBaseUrl);
@@ -27,6 +67,7 @@ export default function SettingsPage() {
     localStorage.setItem('om_reminder_time', reminderTime);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+    toast('设置已保存', 'success');
   };
 
   return (
@@ -49,27 +90,50 @@ export default function SettingsPage() {
                   className="input"
                   type={showKey ? 'text' : 'password'}
                   value={key}
-                  onChange={e => setKey(e.target.value)}
+                  onChange={e => { setKey(e.target.value); setValidationResult(null); }}
                   placeholder="输入你的 API 密钥（开发模式下无需配置）..."
-                  style={{ paddingRight: 40 }}
+                  style={{ paddingRight: 80 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
                   style={{
-                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    position: 'absolute', right: 44, top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--text-muted)', padding: 4,
                   }}
                 >
                   {showKey ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => validateApiKey(key)}
+                  disabled={!key || validating}
+                  style={{
+                    position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: key ? 'pointer' : 'not-allowed',
+                    color: validating ? 'var(--text-muted)' : validationResult === 'valid' ? 'var(--accent-green)' : validationResult === 'invalid' ? 'var(--accent-red)' : 'var(--accent-blue)',
+                    padding: 4, transition: 'color 0.15s',
+                  }}
+                  title={validating ? '验证中...' : '验证密钥'}
+                >
+                  {validating ? <Loader size={15} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} /> : validationResult === 'valid' ? <Check size={15} strokeWidth={2.5} /> : validationResult === 'invalid' ? <X size={15} strokeWidth={2.5} /> : <Eye size={15} strokeWidth={2} />}
+                </button>
               </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, lineHeight: 1.5 }}>
+                点击右侧眼睛图标验证密钥是否有效
+              </p>
             </div>
-            {apiKey && (
+            {validationResult === 'valid' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent-green)' }}>
                 <Check size={14} strokeWidth={2.5} />
-                已配置 · 密钥已保存
+                密钥有效
+              </div>
+            )}
+            {validationResult === 'invalid' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent-red)' }}>
+                <X size={14} strokeWidth={2.5} />
+                密钥无效，请检查后重新输入
               </div>
             )}
           </div>

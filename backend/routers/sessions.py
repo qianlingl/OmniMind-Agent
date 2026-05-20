@@ -1,4 +1,5 @@
 import hashlib
+import os
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from dependencies import get_db, verify_api_key
@@ -53,31 +54,45 @@ async def delete_session(session_id: str, db: AsyncSession = Depends(get_db)):
     return {"success": True, "message": "Session deleted"}
 
 
+@router.patch("/sessions/{session_id}", dependencies=[Depends(verify_api_key)])
+async def update_session(session_id: str, body: dict, db: AsyncSession = Depends(get_db)):
+    svc = DialogueService(db)
+    ok = await svc.update_session(session_id, body.get("title"))
+    if not ok:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"success": True}
+
+
 @router.websocket("/ws/sessions/{session_id}")
 async def websocket_chat(
     websocket: WebSocket,
     session_id: str,
     x_api_key: str = None,
 ):
+    token = websocket.query_params.get("token")
+    key = token or x_api_key or ""
     if settings.api_key_hash:
-        token = websocket.query_params.get("token")
-        key = token or x_api_key or ""
         key_hash = hashlib.sha256(key.encode()).hexdigest()
         expected = settings.api_key_hash.replace("sha256$", "")
         if key_hash != expected:
             await websocket.close(code=4001, reason="Unauthorized")
             return
+    elif not key:
+        require = os.environ.get("REQUIRE_API_KEY", "").lower()
+        if require not in ("", "0", "false", "no"):
+            await websocket.close(code=4001, reason="API key required")
+            return
 
     await websocket.accept()
     from database import async_session
-    try:
-        while True:
-            data = await websocket.receive_json()
-            content = data.get("content", "")
-            async with async_session() as db:
-                svc = DialogueService(db)
+    async with async_session() as db:
+        svc = DialogueService(db)
+        try:
+            while True:
+                data = await websocket.receive_json()
+                content = data.get("content", "")
                 async for token in svc.send_message_stream(session_id, content):
                     await websocket.send_json({"type": "token", "content": token})
                 await websocket.send_json({"type": "done"})
-    except WebSocketDisconnect:
-        pass
+        except WebSocketDisconnect:
+            pass

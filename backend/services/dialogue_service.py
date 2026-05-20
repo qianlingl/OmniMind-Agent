@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from repositories.session_repo import SessionRepo
 from repositories.memory_repo import MemoryRepo
@@ -41,6 +42,9 @@ class DialogueService:
     async def delete_session(self, session_id: str) -> bool:
         return await self.session_repo.delete(session_id)
 
+    async def update_session(self, session_id: str, title: str | None = None) -> bool:
+        return await self.session_repo.update(session_id, title)
+
     async def send_message(self, session_id: str, content: str, enable_search: bool = False,
                            use_memory: bool = True) -> dict:
         from services.search_service import SearchService
@@ -59,7 +63,14 @@ class DialogueService:
 
         # Memory retrieval
         if use_memory:
-            mem_results = await search_memories(content, top_k=3)
+            try:
+                mem_results = await asyncio.wait_for(search_memories(content, top_k=3), timeout=5.0)
+            except asyncio.TimeoutError:
+                logger.warning(f"search_memories timed out for session {session_id}")
+                mem_results = []
+            except Exception as e:
+                logger.warning(f"search_memories failed for session {session_id}: {e}")
+                mem_results = []
             if mem_results:
                 memory_context = "\n".join(m["content"] for m in mem_results)
                 messages.insert(1, {"role": "system", "content": f"Relevant memories:\n{memory_context}"})
@@ -79,11 +90,14 @@ class DialogueService:
             except Exception as e:
                 logger.warning(f"Search failed during send_message: {e}")
 
-        # Context compression
-        messages = await compress_context(messages, session.context_window)
+        # Context compression (defend against null context_window)
+        context_limit = session.context_window if session.context_window and session.context_window > 0 else 65536
+        messages = await compress_context(messages, context_limit)
 
         # LLM
         response = await chat(messages)
+        if not response or not response.strip():
+            response = "(No response generated)"
         token_count = count_tokens(response)
 
         msg = await self.session_repo.add_message(session_id, "assistant", response, token_count=token_count)
@@ -111,38 +125,60 @@ class DialogueService:
         messages += [{"role": m.role, "content": m.content} for m in msgs]
 
         if use_memory:
-            mem_results = await search_memories(content, top_k=3)
+            try:
+                mem_results = await asyncio.wait_for(search_memories(content, top_k=3), timeout=5.0)
+            except asyncio.TimeoutError:
+                logger.warning(f"search_memories timed out for session {session_id}")
+                mem_results = []
+            except Exception as e:
+                logger.warning(f"search_memories failed for session {session_id}: {e}")
+                mem_results = []
             if mem_results:
                 memory_context = "\n".join(m["content"] for m in mem_results)
                 messages.insert(1, {"role": "system", "content": f"Relevant memories:\n{memory_context}"})
 
-        messages = await compress_context(messages, session.context_window)
+        context_limit = session.context_window if session.context_window and session.context_window > 0 else 65536
+        messages = await compress_context(messages, context_limit)
 
         full_response = ""
         async for token in chat_stream(messages):
             full_response += token
             yield token
 
+        if not full_response.strip():
+            full_response = "(No response generated)"
         await self.session_repo.add_message(session_id, "assistant", full_response, token_count=count_tokens(full_response))
         await self._extract_and_save_memories(content, full_response, session_id)
 
     async def _extract_and_save_memories(self, user_msg: str, assistant_msg: str, session_id: str):
         try:
             prompt = [
-                {"role": "system", "content": "Extract important user facts or preferences from this conversation. Output a JSON list of strings, each being a concise fact. If nothing notable, output empty list."},
-                {"role": "user", "content": f"User: {user_msg[:500]}\nAssistant: {assistant_msg[:500]}"},
+                {"role": "system", "content": "You extract important user facts, preferences, or recurring topics from a conversation. Output a JSON object with a 'facts' array of concise strings. Skip generic AI assistant info. Return empty array if nothing worth remembering."},
+                {"role": "user", "content": f"User: {user_msg[:800]}\nAssistant: {assistant_msg[:800]}"},
             ]
-            result = await chat(prompt, temperature=0.3, max_tokens=512, response_format="json_object")
+            result = await chat(prompt, temperature=0.3, max_tokens=512)
             data = json.loads(result)
-            if isinstance(data, list):
-                facts = data
-            elif isinstance(data, dict):
+            if isinstance(data, dict):
                 facts = data.get("facts", [])
+            elif isinstance(data, list):
+                facts = data
             else:
                 facts = []
-            if isinstance(facts, list):
-                for fact in facts[:3]:
-                    mem = await self.memory_repo.create(type="fact", content=str(fact), session_id=session_id)
-                    await add_memory(mem.id, str(fact))
+            if not isinstance(facts, list):
+                facts = []
+
+            existing = await self.memory_repo.search(type="fact", limit=50)
+            existing_contents = {m.content.strip().lower() for m in existing}
+
+            saved = 0
+            for fact in facts[:3]:
+                content = str(fact).strip()
+                if content and content.lower() not in existing_contents:
+                    mem = await self.memory_repo.create(type="fact", content=content, session_id=session_id)
+                    await add_memory(mem.id, content)
+                    existing_contents.add(content.lower())
+                    saved += 1
+                    if saved >= 2:
+                        break
         except Exception as e:
             logger.warning(f"Failed to extract/save memories for session {session_id}: {e}")

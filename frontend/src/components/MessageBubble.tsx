@@ -7,9 +7,10 @@ interface Props {
   content: string;
   streaming?: boolean;
   timestamp?: string;
+  failed?: boolean;
 }
 
-export default function MessageBubble({ role, content, streaming, timestamp }: Props) {
+export default function MessageBubble({ role, content, streaming, timestamp, failed }: Props) {
   const [msgCopied, setMsgCopied] = useState(false);
   const isUser = role === 'user';
 
@@ -18,7 +19,9 @@ export default function MessageBubble({ role, content, streaming, timestamp }: P
       await navigator.clipboard.writeText(content);
       setMsgCopied(true);
       setTimeout(() => setMsgCopied(false), 2000);
-    } catch { /* ignore */ }
+    } catch {
+      setMsgCopied(false);
+    }
   }, [content]);
 
   const formatTime = (ts: string) => {
@@ -27,6 +30,21 @@ export default function MessageBubble({ role, content, streaming, timestamp }: P
       return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     } catch { return ''; }
   };
+
+  if (failed) {
+    return (
+      <div className={`message ${role}`} style={{ opacity: 0.7 }}>
+        <div className="message-content" style={{ color: 'var(--accent-red)', fontSize: 13 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6, verticalAlign: 'middle' }}>
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          消息发送失败，请重试
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`message ${role}`}>
@@ -53,13 +71,13 @@ export default function MessageBubble({ role, content, streaming, timestamp }: P
           {content}
         </ReactMarkdown>
       </div>
-      {isUser && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatTime(timestamp || '')}</span>
-        </div>
-      )}
+      <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', alignItems: 'center', marginTop: 4, gap: 6 }}>
+        {timestamp && (
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatTime(timestamp)}</span>
+        )}
+      </div>
       {!isUser && !streaming && (
-        <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+        <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
           <button
             onClick={copyMessage}
             style={{
@@ -94,6 +112,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
 
 function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
   const isInline = !className;
 
   const copy = useCallback(async () => {
@@ -101,21 +120,35 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      setCopyError(false);
       setTimeout(() => setCopied(false), 2000);
-    } catch { /* ignore */ }
+    } catch {
+      setCopied(false);
+      setCopyError(true);
+      setTimeout(() => setCopyError(false), 2500);
+    }
   }, [children]);
 
   if (isInline) return <code className={className}>{children}</code>;
 
+  const lang = className?.replace('language-', '').replace(/^diff[+-]?/, '') || 'code';
+
   return (
     <div className="code-block-wrapper">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <span style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 4 }}>{className?.replace('language-', '') || 'code'}</span>
-        <button className="code-copy-btn" onClick={copy}>
-          {copied ? '已复制' : '复制'}
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 4, fontFamily: 'var(--font-mono)' }}>{lang}</span>
+        <button className="code-copy-btn" onClick={copy} title={copyError ? '复制失败，请检查浏览器权限' : '复制代码'}>
+          {copyError ? (
+            <span style={{ color: 'var(--accent-red)' }}>复制失败</span>
+          ) : copied ? (
+            <span style={{ color: 'var(--accent-green)' }}>已复制</span>
+          ) : (
+            '复制'
+          )}
         </button>
       </div>
       <code className={className}>{children}</code>
     </div>
   );
 }
+

@@ -11,7 +11,7 @@ router = APIRouter(tags=["Tasks"])
 async def create_task(body: TaskCreate, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     orch = Orchestrator(db)
     result = await orch.create_task(body.session_id, body.type, body.description, body.requirements)
-    background_tasks.add_task(Orchestrator(db).execute_task, result["task_id"])
+    background_tasks.add_task(orch.execute_task, result["task_id"], body.session_id)
     return result
 
 
