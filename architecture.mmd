@@ -1,0 +1,57 @@
+```mermaid
+graph TD
+    subgraph 前端层 Frontend
+        A[React + TypeScript]
+        A1[Chat 智能对话]
+        A2[Files 文件管理]
+        A3[Search 网络搜索]
+        A4[Learning 学习助手]
+        A5[Settings 系统设置]
+        A --> A1
+        A --> A2
+        A --> A3
+        A --> A4
+        A --> A5
+    end
+    
+    subgraph 后端层 Backend
+        B[FastAPI]
+        B1[Sessions 会话管理]
+        B2[Files 文件服务]
+        B3[Search 搜索服务]
+        B4[Memory 记忆服务]
+        B5[Learning 学习服务]
+        B --> B1
+        B --> B2
+        B --> B3
+        B --> B4
+        B --> B5
+    end
+    
+    subgraph 数据层 Database
+        C[(SQLite)]
+        C1[会话记录]
+        C2[用户数据]
+        C3[学习进度]
+        C --> C1
+        C --> C2
+        C --> C3
+        
+        D[(ChromaDB)]
+        D1[向量嵌入]
+        D2[记忆片段]
+        D3[文档索引]
+        D --> D1
+        D --> D2
+        D --> D3
+    end
+    
+    A -->|REST API / WebSocket| B
+    B -->|SQLAlchemy| C
+    B -->|Vector API| D
+    
+    style A fill:#E8F4FD,stroke:#2563EB,stroke-width:2px
+    style B fill:#FEF3C7,stroke:#D97706,stroke-width:2px
+    style C fill:#D1FAE5,stroke:#059669,stroke-width:2px
+    style D fill:#FCE7F3,stroke:#BE185D,stroke-width:2px
+```
