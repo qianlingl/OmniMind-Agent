@@ -224,7 +224,9 @@ LLM 配置:
   - model: deepseek-v4-flash
   - base_url (OpenAI): https://api.deepseek.com
   - base_url (Anthropic): https://api.deepseek.com/anthropic
-  - api_key: sk-6347c988f1b04496af7aa79a0b6db43c
+  - api_key: <your_api_key>
+  - api_key (OpenAI): <your_api_key>
+  - api_key (Anthropic): <your_api_key>
 ```
 
 ---
